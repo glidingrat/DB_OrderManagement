@@ -1,4 +1,5 @@
 # Aplikace pro správu objednávek
+
 ## Co to je?
 Školní projekt který slouží ke správě objednávek, můžeme zde:
 1. Zobrazit všechny zákazniky uložené v databázi
@@ -9,15 +10,43 @@
 6. Smazat existující objednávku z databáze
 7. Vygenerovat souhrný report kde můžeme vidět všechny objednávky zákazníku (konkretně můžeme videt kolik zákazník si udělal objednávek, kolik nakoupil produktů a jeho celkovou útratu)
 8. Importovat data do databáze zákazníků a produktů
+
 ## Jak spustit program?
 ### Nejdříve budeme muset importovat Databázi
 1. Otevřete si `MySQL Workbench`  a `Local instance` 
 2. Klikněte na `Server` poté na `Data import`
 3. Zaklikněte `Import from Self-Contained File` a vyberte soubor `EXPORT_DB.sql` který se nachází ve složce `pythonIota\SQL DATABAZE`
 4. Pak kliknetě na `Import Progress` a spustě import databáze pomocí `Start Import`
+
 ## Nastavení Config souboru
 1. Rozklikněte si config.json který se nacházi v `pythonIota\config.json`
-2. Doplňte vaše heslo do lokální databáze
+2. Doplňte vaše údaje (user, password)
+   ```json
+   {
+       "database": {
+               "host": "localhost",
+               "port": 3306,
+               "user": "váše uživatelské jméno",
+               "password": "vaše heslo",
+               "database": "OrderManagement"
+        }
+    }
+## Struktura souboru při importování 
+1. Pokud chcete importovat zákázníky vaše struktura souboru by měla vypadat takto: ( Každej nový řádek se rovná jednomu zákazníkovi )
+    ```csv
+    FirstName,LastName,Email
+    Jméno,Příjmení,email@example.com
+    Jméno,Příjmení,email@example.com
+   
+2. Pokud chcete importovat produkty vaše struktura souboru by měla vypadat takto: ( Každej nový řádek se rovná jednomu produktu )
+    ```json
+   [
+        {"Name": "Název", "Description": "Popis produktu", "Price": 100, "Stock": 10, "Category": "Electronics"},
+        {"Name": "Název", "Description": "Popis produktu", "Price": 100, "Stock": 10, "Category": "Other"}
+   ]
+- **Price**: Cena produktu (musí být číslo)
+- **Stock**: Skladová dostupnost (musí být číslo)
+- **Category**: Kategorie produktu (musí být jedno z těchto kategorií 'Electronics', 'Clothing', 'Books', 'Other')
 ## Spuštění aplikace
 #### Ve skole je treba ucinit pred instalaci nasleudujici pripravu:
 1. V OS window vypněte proxy server (Tlačítko start, pak tlačítko ozubeného kola a do vyhledávání napsat proxy. Následně vypnout proxy, která tam je nastavena)

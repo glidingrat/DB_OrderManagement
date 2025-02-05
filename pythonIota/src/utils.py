@@ -1,6 +1,7 @@
 from src.models import Customer, Product, Order, OrderItem, Employee
 import csv
 import json
+import os
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 from datetime import datetime
 from sqlalchemy.sql import text
@@ -42,7 +43,7 @@ def show_orders(session):
         employee = order.employee
         employee_name = f"{employee.first_name} {employee.last_name}" if employee else "Nepřiřazen"
         print(
-            f"ID objednávky: {order.id}, Zákazník: {customer.first_name} {customer.last_name}, "
+            f"ID: {order.id}, Přiřazeno: {customer.first_name} {customer.last_name}, "
             f"Zaměstnanec: {employee_name}, Datum: {order.order_date}, "
             f"Celková cena: {order.total_price}, Zpracováno: {'Ano' if order.is_processed else 'Ne'}"
         )
@@ -92,6 +93,9 @@ def insert_order(session):
             while True:
                 try:
                     quantity = int(input(f"Zadejte množství produktu {product.name}: "))
+                    if quantity < 1:
+                        print("Množství nemůže být záporné ani nulové. Zadejte správnou hodnotu.")
+                        continue
                     break
                 except ValueError:
                     print("Neplatný vstup. Zadejte celé číslo.")
@@ -207,8 +211,13 @@ def update_order(session):
             print("Objednávka nebyla nalezena.")
             return
 
-        is_processed = input("Je objednávka zpracovaná? (ano/ne): ").strip().lower()
-        order.is_processed = True if is_processed == "ano" else False
+        while True:
+            is_processed = input("Je objednávka zpracovaná? (ano/ne): ").strip().lower()
+            if is_processed in ["ano", "ne"]:
+                order.is_processed = is_processed == "ano"
+                break
+            else:
+                print("Neplatný vstup. Zadejte pouze 'ano' nebo 'ne'.")
 
         session.commit()
         print(f"Objednávka s ID {order_id} byla úspěšně upravena.")
@@ -217,32 +226,34 @@ def update_order(session):
         print(f"Chyba při úpravě objednávky: {e}")
 
 def generate_report(session):
-    """Vygeneruje souhrnný report pouze pro zákazníky, kteří mají objednávky."""
+    """Vygeneruje souhrnný report zákazníků včetně počtu všech zakoupených produktů."""
     try:
-        # Použití funkce text() pro označení SQL příkazu
         query = text("""
-            SELECT c.first_name, c.last_name, COUNT(DISTINCT o.id) AS order_count, 
-                   SUM(o.total_price) AS total_spent,
-                   COUNT(DISTINCT oi.product_id) AS unique_products
+            SELECT 
+                c.first_name, 
+                c.last_name, 
+                COUNT(DISTINCT o.id) AS order_count, 
+                SUM(oi.total_price) AS total_spent,
+                SUM(oi.quantity) AS total_products  -- Celkový počet produktů
             FROM customers c
             JOIN orders o ON c.id = o.customer_id
             JOIN order_items oi ON o.id = oi.order_id
             GROUP BY c.id
-            HAVING COUNT(DISTINCT o.id) > 0
+            HAVING order_count > 0
         """)
 
         results = session.execute(query)
 
-        print("\nSouhrnný report:")
-        print(f"{'Jméno a příjmení':<25} | {'Počet objednávek':<20} | {'Celková útrata':<15} | {'Počet produktů':<25}")
-        print("-" * 85)
+        print("\nSouhrnný report zákazníků:")
+        print(f"{'Jméno a příjmení':<25} | {'Počet objednávek':<20} | {'Celková útrata':<15} | {'Celkový počet produktů':<25}")
+        print("-" * 92)
 
         for row in results:
             print(
-                f"{row.first_name} {row.last_name:<20} | "
+                f"{row.first_name} {row.last_name:<19} | "
                 f"{row.order_count:<20} | "
                 f"{row.total_spent:<15.2f} | "
-                f"{row.unique_products:<15}"
+                f"{row.total_products:<25}"
             )
 
     except SQLAlchemyError as e:
@@ -352,23 +363,34 @@ def validate_product_data(row, allowed_categories):
 def import_data(session, file_path, table_name):
     """Importuje data z CSV nebo JSON do zvolené tabulky."""
     try:
+        customers_file = os.path.join("customers.csv")
+        products_file = os.path.join("products.json")
+
+        if file_path != customers_file and file_path != products_file:
+            print(f"Neplatný soubor. Použijte pouze '{customers_file}' nebo '{products_file}'.")
+            return
+
         allowed_categories = get_allowed_categories(session, "products", "category")
-        if not allowed_categories:
+        if not allowed_categories and file_path == products_file:
             print("Nepodařilo se načíst povolené kategorie.")
             return
 
-        if file_path.endswith('.csv'):
+        # Import zákazníků
+        if file_path == customers_file and file_path.endswith('.csv'):
             with open(file_path, 'r', encoding='utf-8') as file:
                 reader = csv.DictReader(file)
                 for row in reader:
                     customer = validate_customer_data(row)
                     session.add(customer)
-        elif file_path.endswith('.json'):
+
+        # Import produktů
+        elif file_path == products_file and file_path.endswith('.json'):
             with open(file_path, 'r', encoding='utf-8') as file:
                 data = json.load(file)
                 for row in data:
-                    customer = validate_customer_data(row)
-                    session.add(customer)
+                    product = validate_product_data(row, allowed_categories)
+                    session.add(product)
+
         else:
             print("Nepodporovaný formát souboru.")
             return
@@ -386,6 +408,8 @@ def import_data(session, file_path, table_name):
         except SQLAlchemyError as e:
             session.rollback()
             print(f"Chyba při importu dat: {e}")
+
     except Exception as e:
         print(f"Obecná chyba při importu dat: {e}")
+
 

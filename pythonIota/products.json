@@ -1,3 +1,4 @@
 [
-    {"Name": "Telefon", "Description": "Chytrý mobil", "Price": 800, "Stock": 20, "Category": "Electronics"}
+    {"Name": "Telefon", "Description": "Chytrý mobil", "Price": 5000, "Stock": 5, "Category": "Electronics"},
+    {"Name": "Rychlovarná konvice", "Description": "Sencor SWK 2090BK", "Price": 1200, "Stock": 10, "Category": "Electronics"}
 ]

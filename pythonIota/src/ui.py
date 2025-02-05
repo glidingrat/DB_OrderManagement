@@ -39,13 +39,13 @@ def start_ui(session):
                 print("\t3. Zpět do menu")
                 choice = input("Zadejte číslo akce: ")
                 if choice == "1":
-                    import_data(session, 'customers.csv', 'customers')
+                    import_data(session, "customers.csv", "customers")
                 elif choice == "2":
-                    import_data(session, 'products.json', 'products')
+                    import_data(session, "products.json", "products")
                 elif choice == "3":
                     break
         elif choice == "9":
-            print("Ukončuji aplikaci.")
+            print("Aplikace ukončena.")
             break
         else:
             print("Neplatná volba.")
